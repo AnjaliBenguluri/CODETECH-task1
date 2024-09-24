@@ -1,0 +1,136 @@
+/* create a personal portfolio website with a backend to manage content. This 
+ project helps you learn HTML, CSS, JavaScript, and a backend framework like
+ Express.js or Flask. Design a responsive frontend using HTML, CSS, and
+ JavaScript. Create a backend to manage projects and blog posts */
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>My Portfolio</title>
+</head>
+<body>
+    <header>
+        <h1>My Portfolio</h1>
+        <nav>
+            <a href="#projects">Projects</a>
+            <a href="#blog">Blog</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="projects">
+            <h2>Projects</h2>
+            <div id="project-list"></div>
+        </section>
+
+        <section id="blog">
+            <h2>Blog</h2>
+            <div id="blog-list"></div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
+document.addEventListener('DOMContentLoaded', () => {
+    fetchProjects();
+    fetchBlogPosts();
+});
+
+async function fetchProjects() {
+    const response = await fetch('/api/projects');
+    const projects = await response.json();
+    const projectList = document.getElementById('project-list');
+
+    projects.forEach(project => {
+        const projectDiv = document.createElement('div');
+        projectDiv.innerHTML = `<h3>${project.title}</h3><p>${project.description}</p>`;
+        projectList.appendChild(projectDiv);
+    });
+}
+
+async function fetchBlogPosts() {
+    const response = await fetch('/api/blog');
+    const blogPosts = await response.json();
+    const blogList = document.getElementById('blog-list');
+
+    blogPosts.forEach(post => {
+        const postDiv = document.createElement('div');
+        postDiv.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p>`;
+        blogList.appendChild(postDiv);
+    });
+}
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost:27017/myportfolio', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+});
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', () => {
+    console.log('Connected to MongoDB');
+});
+const mongoose = require('mongoose');
+
+const postSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    date: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Post', postSchema);
+const Post = require('../models/Post');
+
+exports.getAllPosts = async (req, res) => {
+    try {
+        const posts = await Post.find();
+        res.json(posts);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.createPost = async (req, res) => {
+    const post = new Post({
+        title: req.body.title,
+        content: req.body.content,
+    });
+
+    try {
+        const savedPost = await post.save();
+        res.status(201).json(savedPost);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+const express = require('express');
+const router = express.Router();
+const blogController = require('../controllers/blogController');
+
+router.get('/', blogController.getAllPosts);
+router.post('/', blogController.createPost);
+
+module.exports = router;
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const mongoose = require('./config/db');
+const blogRoutes = require('./routes/blog');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+app.use('/api/blog', blogRoutes);
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
